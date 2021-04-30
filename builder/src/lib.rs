@@ -32,7 +32,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         impl #builder_name {
             #(#builder_methods)*
 
-            pub fn build(&mut self) -> Result<#struct_name, std::boxed::Box<dyn std::error::Error>> {
+            pub fn build(&mut self) -> std::result::Result<#struct_name, std::boxed::Box<dyn std::error::Error>> {
                 Ok(#struct_name {
                     #(#builder_assignments,)*
                 })
