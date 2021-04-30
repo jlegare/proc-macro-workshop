@@ -32,7 +32,7 @@ pub fn derive(input: TokenStream) -> TokenStream {
         impl #builder_name {
             #(#builder_methods)*
 
-            pub fn build(&mut self) -> Result<#struct_name, Box<dyn std::error::Error>> {
+            pub fn build(&mut self) -> Result<#struct_name, std::boxed::Box<dyn std::error::Error>> {
                 Ok(#struct_name {
                     #(#builder_assignments,)*
                 })
@@ -54,8 +54,8 @@ pub fn derive(input: TokenStream) -> TokenStream {
 fn assign_field(field: &syn::Field) -> proc_macro2::TokenStream {
     let field_name = &field.ident;
     match extract_inner_type(&field.ty, "Option") {
-        Some(_) => quote! { #field_name: self.#field_name.clone() },
-        None => quote! {
+        std::option::Option::Some(_) => quote! { #field_name: self.#field_name.clone() },
+        std::option::Option::None => quote! {
             #field_name: self.#field_name.clone().ok_or(format!("{} is not set.", stringify!(#field_name)))?
         },
     }
@@ -63,7 +63,7 @@ fn assign_field(field: &syn::Field) -> proc_macro2::TokenStream {
 
 fn extract_attribute<'a>(
     attribute_name: &str,
-    attributes: &'a Vec<syn::Attribute>,
+    attributes: &'a std::vec::Vec<syn::Attribute>,
 ) -> std::option::Option<&'a syn::Attribute> {
     attributes.iter().find(|&a| {
         let syn::Attribute {
@@ -111,13 +111,13 @@ fn extract_inner_type<'a>(
         }
     }
 
-    None
+    std::option::Option::None
 }
 
 fn extract_property_value(
     property_name: &str,
     attribute: &syn::Attribute,
-) -> std::option::Option<String> {
+) -> std::option::Option<std::string::String> {
     match attribute.parse_meta() {
         Ok(syn::Meta::List(syn::MetaList { nested, .. })) => {
             match nested.into_iter().find(|item| {
@@ -131,18 +131,18 @@ fn extract_property_value(
                     false
                 }
             }) {
-                Some(syn::NestedMeta::Meta(syn::Meta::NameValue(syn::MetaNameValue {
+                std::option::Option::Some(syn::NestedMeta::Meta(syn::Meta::NameValue(syn::MetaNameValue {
                     lit: syn::Lit::Str(literal),
                     ..
-                }))) => Some(literal.value()),
-                _ => None,
+                }))) => std::option::Option::Some(literal.value()),
+                _ => std::option::Option::None,
             }
         }
-        _ => None,
+        _ => std::option::Option::None,
     }
 }
 
-fn extract_field_builder<'a>(attributes: &'a Vec<syn::Attribute>) -> Option<proc_macro2::Ident> {
+fn extract_field_builder<'a>(attributes: &'a std::vec::Vec<syn::Attribute>) -> Option<proc_macro2::Ident> {
     extract_attribute("builder", &attributes)
         .map(|attribute| {
             extract_property_value("each", attribute)
@@ -156,7 +156,7 @@ fn initialize_field(field: &syn::Field) -> proc_macro2::TokenStream {
     if extract_inner_type(&field.ty, "Vec").is_some() {
         quote! { #field_name: std::option::Option::Some(vec![]) }
     } else {
-        quote! { #field_name: None }
+        quote! { #field_name: std::option::Option::None }
     }
 }
 
@@ -169,13 +169,13 @@ fn methodize_field(field: &syn::Field) -> proc_macro2::TokenStream {
     let field_builder_name = field_builder.unwrap_or_else(|| field_name.clone());
 
     match extract_inner_type(&field_type, "Option") {
-        Some(inner_type) => {
+        std::option::Option::Some(inner_type) => {
             quote! { pub fn #field_builder_name(&mut self, #field_name: #inner_type) -> &mut Self {
-                self.#field_name = Some(#field_name);
+                self.#field_name = std::option::Option::Some(#field_name);
                 self
             } }
         }
-        None => {
+        std::option::Option::None => {
             if has_field_builder {
                 let inner_type = extract_inner_type(&field_type, "Vec").unwrap();
 
@@ -183,13 +183,13 @@ fn methodize_field(field: &syn::Field) -> proc_macro2::TokenStream {
                     if let std::option::Option::Some(ref mut inner) = self.#field_name {
                         inner.push(#field_name)
                     } else {
-                        self.#field_name = Some(vec![#field_name])
+                        self.#field_name = std::option::Option::Some(vec![#field_name])
                     };
                     self
                 } }
             } else {
                 quote! { pub fn #field_builder_name(&mut self, #field_name: #field_type) -> &mut Self {
-                    self.#field_name = Some(#field_name);
+                    self.#field_name = std::option::Option::Some(#field_name);
                     self
                 } }
             }
@@ -201,7 +201,7 @@ fn optionize_field(field: &syn::Field) -> proc_macro2::TokenStream {
     let field_name = &field.ident;
     let field_type = &field.ty;
     match extract_inner_type(field_type, "Option") {
-        Some(_) => quote! { #field_name: #field_type },
-        None => quote! { #field_name: std::option::Option<#field_type> },
+        std::option::Option::Some(_) => quote! { #field_name: #field_type },
+        std::option::Option::None => quote! { #field_name: std::option::Option<#field_type> },
     }
 }
