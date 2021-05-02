@@ -131,10 +131,12 @@ fn extract_property_value(
                     false
                 }
             }) {
-                std::option::Option::Some(syn::NestedMeta::Meta(syn::Meta::NameValue(syn::MetaNameValue {
-                    lit: syn::Lit::Str(literal),
-                    ..
-                }))) => std::option::Option::Some(literal.value()),
+                std::option::Option::Some(syn::NestedMeta::Meta(syn::Meta::NameValue(
+                    syn::MetaNameValue {
+                        lit: syn::Lit::Str(literal),
+                        ..
+                    },
+                ))) => std::option::Option::Some(literal.value()),
                 _ => std::option::Option::None,
             }
         }
@@ -142,7 +144,9 @@ fn extract_property_value(
     }
 }
 
-fn extract_field_builder<'a>(attributes: &'a std::vec::Vec<syn::Attribute>) -> Option<proc_macro2::Ident> {
+fn extract_field_builder<'a>(
+    attributes: &'a std::vec::Vec<syn::Attribute>,
+) -> Option<proc_macro2::Ident> {
     extract_attribute("builder", &attributes)
         .map(|attribute| {
             extract_property_value("each", attribute)
