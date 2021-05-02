@@ -146,7 +146,7 @@ fn extract_property_value(
 
 fn extract_field_builder<'a>(
     attributes: &'a std::vec::Vec<syn::Attribute>,
-) -> Option<proc_macro2::Ident> {
+) -> std::option::Option<proc_macro2::Ident> {
     extract_attribute("builder", &attributes)
         .map(|attribute| {
             extract_property_value("each", attribute)
