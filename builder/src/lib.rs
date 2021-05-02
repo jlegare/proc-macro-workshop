@@ -155,7 +155,7 @@ fn extract_field_builder<'a>(
             std::option::Option::None => {
                 return std::result::Result::Err(syn::Error::new_spanned(
                     &attribute.tokens,
-                    "Expected 'each'.",
+                    "expected `builder(each = \"...\")`",
                 ))
             }
         },
