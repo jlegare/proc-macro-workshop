@@ -2,11 +2,11 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_macro_input, DeriveInput};
+use syn::parse_macro_input;
 
 #[proc_macro_derive(Builder, attributes(builder,))]
 pub fn derive(input: TokenStream) -> TokenStream {
-    let tree = parse_macro_input!(input as DeriveInput);
+    let tree = parse_macro_input!(input as syn::DeriveInput);
     let struct_name = &tree.ident;
     let struct_fields = if let syn::Data::Struct(syn::DataStruct {
         fields: syn::Fields::Named(syn::FieldsNamed { ref named, .. }),
@@ -146,13 +146,21 @@ fn extract_property_value(
 
 fn extract_field_builder<'a>(
     attributes: &'a std::vec::Vec<syn::Attribute>,
-) -> std::option::Option<proc_macro2::Ident> {
-    extract_attribute("builder", &attributes)
-        .map(|attribute| {
-            extract_property_value("each", attribute)
-                .map(|builder_name| format_ident!("{}", builder_name))
-        })
-        .flatten()
+) -> syn::Result<std::option::Option<proc_macro2::Ident>> {
+    match extract_attribute("builder", &attributes) {
+        std::option::Option::Some(attribute) => match extract_property_value("each", attribute) {
+            std::option::Option::Some(builder_name) => std::result::Result::Ok(
+                std::option::Option::Some(format_ident!("{}", builder_name)),
+            ),
+            std::option::Option::None => {
+                return std::result::Result::Err(syn::Error::new_spanned(
+                    &attribute.tokens,
+                    "Expected 'each'.",
+                ))
+            }
+        },
+        None => Ok(None),
+    }
 }
 
 fn initialize_field(field: &syn::Field) -> proc_macro2::TokenStream {
@@ -168,7 +176,11 @@ fn methodize_field(field: &syn::Field) -> proc_macro2::TokenStream {
     let field_name = format_ident!("{}", field.ident.as_ref().unwrap().to_string());
     let field_type = &field.ty;
 
-    let field_builder = extract_field_builder(&field.attrs);
+    let field_builder = match extract_field_builder(&field.attrs) {
+        Ok(field_builder) => field_builder,
+        Err(error) => return error.to_compile_error().into(),
+    };
+
     let has_field_builder = field_builder.is_some();
     let field_builder_name = field_builder.unwrap_or_else(|| field_name.clone());
 
